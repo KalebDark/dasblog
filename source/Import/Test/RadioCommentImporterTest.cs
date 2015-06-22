@@ -1,78 +1,61 @@
-using DasBlog.Import.Radio;
+using System;
+using System.Diagnostics;
 using DasBlog.Import.Test;
 using newtelligence.DasBlog.Runtime;
-using newtelligence.DasBlog.Util;
 using NUnit.Framework;
-using System;
-using System.IO;
 
-
-namespace DasBlog.Import.Radio.Test
-{
+namespace DasBlog.Import.Radio.Test {
 	[TestFixture]
-	public class CommentImporterTest : ImporterBaseTest
-	{
+	public class CommentImporterTest: ImporterBaseTest {
 
 		[SetUp]
-		public override void SetUp()
-		{
+		public override void SetUp() {
 			base.SetUp();
-			EntryImporter.Import(EntryImporterTest.SourceDirectory, 
+			EntryImporter.Import(EntryImporterTest.SourceDirectory,
 				ContentDirectory);
 		}
 
-		public string UserID
-		{
-			[System.Diagnostics.DebuggerStepThrough()]
-			get 
-			{ 
-				return _userID; 
-			}  
-			[System.Diagnostics.DebuggerStepThrough()]
-			set
-			{ 
-				_userID = value; 
-			}  
-		} 
+		public string UserId {
+			[DebuggerStepThrough()]
+			get {
+				return _userId;
+			}
+			[DebuggerStepThrough()]
+			set {
+				_userId = value;
+			}
+		}
 		// The userId below belongs to Mark Michaelis (mark@michaelis.net).  Please use
 		// it with caution.  Thanks!
-		private string _userID = "114349";
+		private string _userId = "114349";
 
 		[Test, Ignore("Code not yet completed")]
-		public void Import()
-		{
+		public void Import() {
 
-			CommentImporter.Import(UserID, ContentDirectory, null);
+			CommentImporter.Import(UserId, ContentDirectory, null);
 
 			CommentCollection comments = DataService.GetAllComments();
 			Assert.AreEqual(15, comments.Count);
 		}
 
-		#region Check Invalid Parameters
 		[Test, ExpectedException(typeof(ArgumentException))]
-		public void UserIdIsNull()
-		{
+		public void UserIdIsNull() {
 			CommentImporter.Import(null, "garbage", null);
 		}
 
 		[Test, ExpectedException(typeof(ArgumentException))]
-		public void UserIdIsEmpty()
-		{
+		public void UserIdIsEmpty() {
 			CommentImporter.Import("", "garbage", null);
 		}
 
 		[Test, ExpectedException(typeof(ArgumentException))]
-		public void ContentDirectoryIsNull()
-		{
+		public void ContentDirectoryIsNull() {
 			CommentImporter.Import("garbage", null, null);
 		}
 
 		[Test, ExpectedException(typeof(ArgumentException))]
-		public void ContentDirectoryIsEmpty()
-		{
+		public void ContentDirectoryIsEmpty() {
 			CommentImporter.Import("garbage", "", null);
 		}
-		#endregion Check Invalid Parameters
-
 	}
 }

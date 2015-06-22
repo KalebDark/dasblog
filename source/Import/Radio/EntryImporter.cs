@@ -45,120 +45,103 @@
 //   with or without credit to me, just don't
 //   blame me if it doesn't work.
 //=-------
-namespace DasBlog.Import.Radio
-{
-    using System;
-    using System.Xml;
-    using System.IO;
-    using System.Text;
-    using System.Collections;
-    using newtelligence.DasBlog.Runtime;
+namespace DasBlog.Import.Radio {
+	using System;
+	using System.Xml;
+	using System.IO;
+	using System.Text;
+	using System.Collections;
+	using newtelligence.DasBlog.Runtime;
 
-    public class EntryImporter
-    {
-        public static int Import(string from, string to)
-        {
-			if(from == null || from.Length == 0)
-			{
+	public class EntryImporter {
+		public static int Import(string from, string to) {
+			if(string.IsNullOrEmpty(from)) {
 				throw new ArgumentException("The source directory is required.");
 			}
-			else if(to == null || to.Length == 0)
-			{
+			if(string.IsNullOrEmpty(to)) {
 				throw new ArgumentException("The content directory is required.");
 			}
-			else if(!Directory.Exists(from))
-			{
+			if(!Directory.Exists(@from)) {
 				throw new ArgumentException(
-					string.Format("The source directory, '{0}' does not exist.", from));
+					string.Format("The source directory, '{0}' does not exist.", @from));
 			}
-			else if(!Directory.Exists(to))
-			{
+			if(!Directory.Exists(to)) {
 				throw new ArgumentException(
 					string.Format("The content directory, '{0}' does not exist.", to));
 			}
 
-			IBlogDataService dataService = BlogDataServiceFactory.GetService(to,null);
+			IBlogDataService dataService = BlogDataServiceFactory.GetService(to, null);
 
-            ArrayList tables = new ArrayList();
+			ArrayList tables = new ArrayList();
 
-            XmlDocument masterDoc = new XmlDocument();
-            StringBuilder sb = new StringBuilder();
-            sb.Append("<tables>");
+			XmlDocument masterDoc = new XmlDocument();
+			StringBuilder sb = new StringBuilder();
+			sb.Append("<tables>");
 
-            foreach (FileInfo file in new DirectoryInfo(from).GetFiles("*.xml"))
-            {
-                XmlDocument entry = new XmlDocument();
-                entry.Load(file.FullName);
-                sb.Append(entry.FirstChild.NextSibling.OuterXml);
-            }
-            sb.Append("</tables>");
+			foreach(FileInfo file in new DirectoryInfo(from).GetFiles("*.xml")) {
+				XmlDocument entry = new XmlDocument();
+				entry.Load(file.FullName);
+				sb.Append(entry.FirstChild.NextSibling.OuterXml);
+			}
+			sb.Append("</tables>");
 
-            masterDoc.Load(new StringReader(sb.ToString()));
+			masterDoc.Load(new StringReader(sb.ToString()));
 
-            foreach (XmlNode node in masterDoc.FirstChild)
-            {
-                EntryTable table = new EntryTable();
-                table.Name = node.Attributes["name"].Value;
-                foreach (XmlNode child in node)
-                {
-                    switch (child.Name)
-                    {
-                        case "date":
-                            table.Data[child.Attributes["name"].Value] = DateTime.Parse(child.Attributes["value"].Value);
-                            break;
-                        case "boolean":
-                            table.Data[child.Attributes["name"].Value] = bool.Parse(child.Attributes["value"].Value);
-                            break;
-                        case "string":
-                            table.Data[child.Attributes["name"].Value] = child.Attributes["value"].Value;
-                            break;
-                        case "table":
-                            if (child.Attributes["name"].Value == "categories")
-                            {
-                                foreach (XmlNode catNode in child)
-                                {
-                                    if (catNode.Name == "boolean" && catNode.Attributes["value"].Value == "true")
-                                    {
-                                        if (table.Data.Contains("categories"))
-                                        {
-                                            table.Data["categories"] = (string)table.Data["categories"] + ";" + catNode.Attributes["name"].Value;
-                                        }
-                                        else
-                                        {
-                                            table.Data["categories"] = catNode.Attributes["name"].Value;
-                                        }
-                                    }
-                                }
-                            }
-                            break;
-                        case "link":
-                            table.Data[child.Attributes["name"].Value] = child.Attributes["value"].Value;
-                            break;
+			foreach(XmlNode node in masterDoc.FirstChild) {
+				EntryTable table = new EntryTable();
+				table.Name = node.Attributes["name"].Value;
+				foreach(XmlNode child in node) {
+					switch(child.Name) {
+						case "date":
+							table.Data[child.Attributes["name"].Value] = DateTime.Parse(child.Attributes["value"].Value);
+							break;
+						case "boolean":
+							table.Data[child.Attributes["name"].Value] = bool.Parse(child.Attributes["value"].Value);
+							break;
+						case "string":
+							table.Data[child.Attributes["name"].Value] = child.Attributes["value"].Value;
+							break;
+						case "table":
+							if(child.Attributes["name"].Value == "categories") {
+								foreach(XmlNode catNode in child) {
+									if(catNode.Name == "boolean" && catNode.Attributes["value"].Value == "true") {
+										if(table.Data.Contains("categories")) {
+											table.Data["categories"] = (string) table.Data["categories"] + ";" + catNode.Attributes["name"].Value;
+										}
+										else {
+											table.Data["categories"] = catNode.Attributes["name"].Value;
+										}
+									}
+								}
+							}
+							break;
+						case "link":
+							table.Data[child.Attributes["name"].Value] = child.Attributes["value"].Value;
+							break;
 						case "flNotOnHomePage":
 							table.Data[child.Attributes["name"].Value] = child.Attributes["value"].Value;
 							break;
-                    }
-                }
-                tables.Add(table);
-            }
+					}
+				}
+				tables.Add(table);
+			}
 
-            foreach (EntryTable table in tables)
-            {
-                Entry entry = new Entry();
-                entry.CreatedUtc = table.When;
-                entry.Title = table.Title;
-                entry.Link = table.Link;
-                entry.Content = table.Text;
-                entry.Categories = table.Categories;
-                entry.EntryId = table.UniqueId;
+			foreach(EntryTable table in tables) {
+				Entry entry = new Entry();
+				entry.CreatedUtc = table.When;
+				entry.Title = table.Title;
+				entry.Link = table.Link;
+				entry.Content = table.Text;
+				entry.Categories = table.Categories;
+				entry.EntryId = table.UniqueId;
 				entry.ShowOnFrontPage = !table.NotOnHomePage;
-                dataService.SaveEntry( entry );
-            }
+				dataService.SaveEntry(entry);
+			}
 
 			Console.WriteLine("{0} entrys were imported", tables.Count);
-            return 0;
-        }
-    }
+			return 0;
+		}
+	}
 
 
 }

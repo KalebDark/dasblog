@@ -3,75 +3,62 @@
 // TODO: Change copyright if necessary
 
 using System;
-using System.IO; 
-using System.Xml; 
-using System.Xml.XPath; 
-using System.Collections; 
+using System.IO;
+using System.Xml.XPath;
+using newtelligence.DasBlog.Runtime;
 
-using newtelligence.DasBlog.Runtime; 
-
-namespace Candera.DasBlog.BlogXContentImport
-{
-	class App
-	{
-		private const int SUCCESS = 0; 
-		private const int ERRORWRONGUSAGE = -1; 
-		private const int ERRORINPUTDIRNOTFOUND = -2; 
-		private const int ERROROUTPUTDIRNOTFOUND = -3; 
-		private const int ERROREXCEPTION = -4; 
+namespace Candera.DasBlog.BlogXContentImport {
+	class App {
+		private const int SUCCESS = 0;
+		private const int ERRORWRONGUSAGE = -1;
+		private const int ERRORINPUTDIRNOTFOUND = -2;
+		private const int ERROROUTPUTDIRNOTFOUND = -3;
+		private const int ERROREXCEPTION = -4;
 
 
-		static int Main(string[] args)
-		{
-			try
-			{
+		static int Main(string[] args) {
+			try {
 				#region Command Line Parsing
-				string inputdir = null; 
-				string outputdir = null; 
-				for (int i = 0; i < args.Length; ++i)
-				{
-					if (args[i] == "-inputdir")
-					{
-						inputdir = args[++i]; 
+				string inputdir = null;
+				string outputdir = null;
+				for(int i = 0; i < args.Length; ++i) {
+					if(args[i] == "-inputdir") {
+						inputdir = args[++i];
 					}
-					else if (args[i] == "-outputdir")
-					{
-						outputdir = args[++i]; 
+					else if(args[i] == "-outputdir") {
+						outputdir = args[++i];
 					}
 				}
 
-				if (inputdir == null || outputdir == null)
-				{
-					PrintUsage(); 
-					return ERRORWRONGUSAGE; 
+				if(inputdir == null || outputdir == null) {
+					PrintUsage();
+					return ERRORWRONGUSAGE;
 				}
 
 				// Canonicalize and expand path to full path
-				inputdir = Path.GetFullPath(inputdir); 
-				outputdir = Path.GetFullPath(outputdir); 
+				inputdir = Path.GetFullPath(inputdir);
+				outputdir = Path.GetFullPath(outputdir);
 
-				if (!Directory.Exists(inputdir))
-				{
-					Console.WriteLine(inputdir + " does not exist or is not a directory"); 
-					return ERRORINPUTDIRNOTFOUND; 
+				if(!Directory.Exists(inputdir)) {
+					Console.WriteLine(inputdir + " does not exist or is not a directory");
+					return ERRORINPUTDIRNOTFOUND;
 				}
 
-				if (!Directory.Exists(outputdir))
-				{
-					Console.WriteLine(outputdir + " does not exist or is not a directory"); 
-					return ERROROUTPUTDIRNOTFOUND; 
+				if(!Directory.Exists(outputdir)) {
+					Console.WriteLine(outputdir + " does not exist or is not a directory");
+					return ERROROUTPUTDIRNOTFOUND;
 				}
 
 				#endregion Command Line Parsing
 
-				IBlogDataService dsInput = BlogDataServiceFactory.GetService(inputdir,null);
-				IBlogDataService dsOutput = BlogDataServiceFactory.GetService(outputdir, null); 
+				IBlogDataService dsInput = BlogDataServiceFactory.GetService(inputdir, null);
+				IBlogDataService dsOutput = BlogDataServiceFactory.GetService(outputdir, null);
 
-				Console.WriteLine("Porting posts"); 
+				Console.WriteLine("Porting posts");
 				// Copy all dayentry files to output directory
 				// This shouldn't require any conversion, since the format and naming convention matches
 				// between BlogX and dasBlog
-				EntryCollection entries =	dsInput.GetEntriesForDay(
+				EntryCollection entries = dsInput.GetEntriesForDay(
 					DateTime.MaxValue.AddDays(-2),
 					TimeZone.CurrentTimeZone,
 					String.Empty,
@@ -80,64 +67,59 @@ namespace Candera.DasBlog.BlogXContentImport
 					String.Empty);
 
 				//Hashtable lookup = new Hashtable(); 
-				foreach (Entry e in entries)
-				{
+				foreach(Entry e in entries) {
 					//lookup[e.EntryId] = e; 
-					dsOutput.SaveEntry(e); 
-					Console.Write("."); 
+					dsOutput.SaveEntry(e);
+					Console.Write(".");
 				}
 
-				Console.WriteLine(); 
-				Console.WriteLine("Posts successfully ported"); 
+				Console.WriteLine();
+				Console.WriteLine("Posts successfully ported");
 
-				Console.WriteLine("Porting comments"); 
+				Console.WriteLine("Porting comments");
 
 				// TODO: Read in all dayextra files from input directory
-				int commentCount = 0; 
+				int commentCount = 0;
 				string[] commentFiles = Directory.GetFiles(inputdir, "*.dayextra.xml");
-				foreach (string commentFile in commentFiles)
-				{
+				foreach(string commentFile in commentFiles) {
 					// TODO: Match up comments with DayEntry, emit comment
-					XPathDocument doc = new XPathDocument(Path.Combine(inputdir, commentFile)); 
-					XPathNavigator nav = doc.CreateNavigator(); 
-					XPathNodeIterator commentNodes = nav.Select("//Comment"); 
+					XPathDocument doc = new XPathDocument(Path.Combine(inputdir, commentFile));
+					XPathNavigator nav = doc.CreateNavigator();
+					XPathNodeIterator commentNodes = nav.Select("//Comment");
 
-					while (commentNodes.MoveNext())
-					{
-						Comment comment = new Comment(); 
-            
-						XPathNavigator commentNode = commentNodes.Current; 
+					while(commentNodes.MoveNext()) {
+						Comment comment = new Comment();
 
-						comment.Content = (string) commentNode.Evaluate("string(Content)"); 
-						comment.CreatedUtc = DateTime.Parse((string) commentNode.Evaluate("string(Created)")); 
-						comment.ModifiedUtc = DateTime.Parse((string) commentNode.Evaluate("string(Modified)")); 
-						comment.EntryId = (string) commentNode.Evaluate("string(EntryId)"); 
-						comment.TargetEntryId = (string) commentNode.Evaluate("string(TargetEntryId)"); 
-						comment.Author = (string) commentNode.Evaluate("string(Author)"); 
-						comment.AuthorEmail = (string) commentNode.Evaluate("string(AuthorEmail)"); 
-						comment.AuthorHomepage = (string) commentNode.Evaluate("string(AuthorHomepage)"); 
+						XPathNavigator commentNode = commentNodes.Current;
 
-						dsOutput.AddComment(comment); 
-						Console.Write("."); 
-						++commentCount; 
+						comment.Content = (string) commentNode.Evaluate("string(Content)");
+						comment.CreatedUtc = DateTime.Parse((string) commentNode.Evaluate("string(Created)"));
+						comment.ModifiedUtc = DateTime.Parse((string) commentNode.Evaluate("string(Modified)"));
+						comment.EntryId = (string) commentNode.Evaluate("string(EntryId)");
+						comment.TargetEntryId = (string) commentNode.Evaluate("string(TargetEntryId)");
+						comment.Author = (string) commentNode.Evaluate("string(Author)");
+						comment.AuthorEmail = (string) commentNode.Evaluate("string(AuthorEmail)");
+						comment.AuthorHomepage = (string) commentNode.Evaluate("string(AuthorHomepage)");
+
+						dsOutput.AddComment(comment);
+						Console.Write(".");
+						++commentCount;
 					}
 				}
 
-				Console.WriteLine(); 
-				Console.WriteLine("{0} comments successfully imported!", commentCount); 
+				Console.WriteLine();
+				Console.WriteLine("{0} comments successfully imported!", commentCount);
 			}
-			catch (Exception e)
-			{
+			catch(Exception e) {
 				// Return nonzero so automated tools can tell it failed
-				Console.WriteLine(e.ToString()); 
-				return ERROREXCEPTION; 
+				Console.WriteLine(e.ToString());
+				return ERROREXCEPTION;
 			}
 
-			return SUCCESS; 
+			return SUCCESS;
 		}
 
-		public static void PrintUsage()
-		{
+		public static void PrintUsage() {
 			Console.WriteLine(@"
 DasBlogBlogXContentImport
 Copyright (c) 2003 Craig Andera http://staff.develop.com/candera

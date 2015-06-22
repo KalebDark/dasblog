@@ -44,162 +44,143 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Xml.Serialization;
 
-namespace newtelligence.DasBlog.Runtime
-{
-    [XmlRoot(Namespace = Data.NamespaceURI)]
-    [XmlType(Namespace = Data.NamespaceURI)]
-    [Serializable]
-    public class Attachment
-    {
-        private string name;
-        private string url;
-        private string type;
-        private long length;
-        private AttachmentType attachmentType;
+namespace newtelligence.DasBlog.Runtime {
+	[XmlRoot(Namespace = Data.NamespaceURI)]
+	[XmlType(Namespace = Data.NamespaceURI)]
+	[Serializable]
+	public class Attachment {
+		private string _name;
+		private string _url;
+		private string _type;
+		private long _length;
+		private AttachmentType _attachmentType;
 
-        public string Name
-        {
-            get { return this.name; }
-            set { this.name = value; }
-        }
+		public string Name {
+			get { return _name; }
+			set { _name = value; }
+		}
 
-        [XmlIgnore]
-        public string Url
-        {
-            get { return this.url; }
-            set { this.url = value; }
-        }
+		[XmlIgnore]
+		public string Url {
+			get { return _url; }
+			set { _url = value; }
+		}
 
-        public string Type
-        {
-            get { return this.type; }
-            set { this.type = value; }
-        }
+		public string Type {
+			get { return _type; }
+			set { _type = value; }
+		}
 
-        public long Length
-        {
-            get { return this.length; }
-            set { this.length = value; }
-        }
+		public long Length {
+			get { return _length; }
+			set { _length = value; }
+		}
 
-        public AttachmentType AttachmentType { get { return attachmentType; } set { attachmentType = value; } }
-        [XmlIgnore]
-        public bool AttachmentTypeSpecified { get { return attachmentType != AttachmentType.Unknown; } set { if (!value) attachmentType = AttachmentType.Unknown; } }
+		public AttachmentType AttachmentType {
+			get { return _attachmentType; }
+			set { _attachmentType = value; }
+		}
 
-
-        public Attachment()
-        {
-        }
-
-        public Attachment(string name, string type, long length, AttachmentType attachmentType)
-        {
-            this.name = name;
-            this.type = type;
-            if (length != 0) this.length = length;
-            this.attachmentType = attachmentType;
-        }
-    }
-
-    [Serializable]
-    public class AttachmentCollection : Collection<Attachment>
-    {
-        /// <summary>
-        /// Initializes a new empty instance of the AttachmentCollection class.
-        /// </summary>
-        public AttachmentCollection()
-            : base()
-        {
-            // empty
-        }
+		[XmlIgnore]
+		public bool AttachmentTypeSpecified {
+			get { return _attachmentType != AttachmentType.Unknown; }
+			set { if(!value) _attachmentType = AttachmentType.Unknown; }
+		}
 
 
-        /// <summary>
-        /// Initializes a new instance of the AttachmentCollection class, wrapping the specified list. 
-        /// </summary>
-        /// <param name="items">
-        /// The list that is wrapped by the new AttachmentCollection.
-        /// </param>
-        /// <exception cref="ArgumentException">Thrown when the list contains more than one Enclosure.</exception>
-        public AttachmentCollection(IList<Attachment> items)
-            : base()
-        {
-            if (items == null) {
-                throw new ArgumentNullException("items");
-            }
+		public Attachment() { }
 
-            this.AddRange(items);
-        }
+		public Attachment(string name_, string type_, long length_, AttachmentType attachmentType_) {
+			_name = name_;
+			_type = type_;
+			if(length_ != 0) {
+				_length = length_;
+			}
 
-        /// <summary>
-        /// Adds the elements of an array to the end of this AttachmentCollection.
-        /// </summary>
-        /// <param name="items">
-        /// The array whose elements are to be added to the end of this AttachmentCollection.
-        /// </param>
-        public virtual void AddRange(IEnumerable<Attachment> items)
-        {
-            foreach (Attachment item in items)
-            {
-                this.Add(item);
-            }
-        }
+			_attachmentType = attachmentType_;
+		}
+	}
+
+	[Serializable]
+	public sealed class AttachmentCollection: Collection<Attachment> {
+		// we only one enclose in the attachment collection
+		private int _enclosureCount;
+
+		/// <summary>
+		/// Initializes a new empty instance of the AttachmentCollection class.
+		/// </summary>
+		public AttachmentCollection() { }
 
 
-        protected override void InsertItem(int index, Attachment item)
-        {
-            Validate(item);
-            base.InsertItem(index, item);
-            if (IsEnclosure(item))
-            {
-                enclosureCount++;
-            }
-        }
+		/// <summary>
+		/// Initializes a new instance of the AttachmentCollection class, wrapping the specified list. 
+		/// </summary>
+		/// <param name="items_">
+		/// The list that is wrapped by the new AttachmentCollection.
+		/// </param>
+		/// <exception cref="ArgumentException">Thrown when the list contains more than one Enclosure.</exception>
+		public AttachmentCollection(IList<Attachment> items_) {
+			if(items_ == null) {
+				throw new ArgumentNullException("items_");
+			}
 
-        protected override void SetItem(int index, Attachment item)
-        {
-            Validate(item);
-            base.SetItem(index, item);
+			AddRange(items_);
+		}
 
-            if (IsEnclosure(item))
-            {
-                enclosureCount++;
-            }
-        }
-
-        protected override void ClearItems()
-        {
-            base.ClearItems();
-            enclosureCount = 0;
-        }
-
-        protected override void RemoveItem(int index)
-        {
-
-            Attachment item = this.Items[index];
-            if (item != null && item.AttachmentType == AttachmentType.Enclosure)
-            {
-                enclosureCount--;
-            }
-
-            base.RemoveItem(index);
-        }
-
-        // Checks if the number of enclosures doesn't exceed the maximum number
-        private void Validate(Attachment item)
-        {
-            if (enclosureCount > 0 && item.AttachmentType == AttachmentType.Enclosure)
-            {
-                throw new ArgumentException("Only one Enclosure is allowed per collection");
-            }
-        }
-
-        private static bool IsEnclosure(Attachment item)
-        {
-            return (item != null && item.AttachmentType == AttachmentType.Enclosure);
-        }
+		/// <summary>
+		/// Adds the elements of an array to the end of this AttachmentCollection.
+		/// </summary>
+		/// <param name="items_">
+		/// The array whose elements are to be added to the end of this AttachmentCollection.
+		/// </param>
+		public void AddRange(IEnumerable<Attachment> items_) {
+			foreach(Attachment item in items_) {
+				Add(item);
+			}
+		}
 
 
-        // we only one enclose in the attachment collection
-        private int enclosureCount;
-    }
+		protected override void InsertItem(int index_, Attachment item_) {
+			Validate(item_);
+			base.InsertItem(index_, item_);
+			if(IsEnclosure(item_)) {
+				_enclosureCount++;
+			}
+		}
+
+		protected override void SetItem(int index_, Attachment item_) {
+			Validate(item_);
+			base.SetItem(index_, item_);
+
+			if(IsEnclosure(item_)) {
+				_enclosureCount++;
+			}
+		}
+
+		protected override void ClearItems() {
+			base.ClearItems();
+			_enclosureCount = 0;
+		}
+
+		protected override void RemoveItem(int index_) {
+
+			Attachment item = Items[index_];
+			if(item != null && item.AttachmentType == AttachmentType.Enclosure) {
+				_enclosureCount--;
+			}
+
+			base.RemoveItem(index_);
+		}
+
+		// Checks if the number of enclosures doesn't exceed the maximum number
+		private void Validate(Attachment item_) {
+			if(_enclosureCount > 0 && item_.AttachmentType == AttachmentType.Enclosure) {
+				throw new ArgumentException("Only one Enclosure is allowed per collection");
+			}
+		}
+
+		private static bool IsEnclosure(Attachment item_) {
+			return (item_ != null && item_.AttachmentType == AttachmentType.Enclosure);
+		}
+	}
 }
